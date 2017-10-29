@@ -4,11 +4,9 @@
 
 ################################################################################
 
-from ...game_if.game import Game
-
 import numpy as np
 
-class TicTacToe(Game):
+class TicTacToe():
 
     CIRCLE = 0
     CROSS = 1
@@ -18,7 +16,7 @@ class TicTacToe(Game):
         self.nbr_players = 2
         self.board = np.zeros(shape=(3,3,3))
         self.board[2,:,:] = 1.
-        self.player_turn = CIRCLE
+        self.player_turn = self.CIRCLE
 
     def get_action_list():
         return range(9)
@@ -36,7 +34,7 @@ class TicTacToe(Game):
         if old_status == -3:
             raise Exception('Game was already finished by an invalid move!')
 
-        x,y = action_id_2_xy(action_id)
+        x,y = self.action_id_2_xy(action_id)
 
         self.board[2,x,y] -= 1
         self.board[player_id,x,y] += 1
@@ -55,13 +53,13 @@ class TicTacToe(Game):
         print('---+---+---')
         print(' %s | %s | %s '%tuple([chr(s) for s in ords[2]]))
 
-    def action_id_2_xy(id):
-        return (id//3, id%3)
+    def action_id_2_xy(self, a_id):
+        return (a_id//3, a_id%3)
 
     def eval_win_cond(self):
         assert(np.max(self.board[2,:,:])<=1)
         assert(np.min(self.board[:2,:,:])>=0)
-        assert(np.sum(self.board, axis=0)==np.ones([3,3]))
+        assert(np.all(np.sum(self.board, axis=0)==np.ones([3,3])))
 
         if np.min(self.board[2,:,:])<0: # invalid move
             return -3
@@ -69,12 +67,12 @@ class TicTacToe(Game):
         circle_lines = 0
         cross_lines = 0
 
-        for line in lines:
+        for line in self.lines:
             circ_f = 1
             cros_f = 1
             for cell in line:
-                circ_f *= self.board[CIRCLE][cell]
-                cros_f *= self.board[CROSS][cell]
+                circ_f *= self.board[self.CIRCLE][cell]
+                cros_f *= self.board[self.CROSS][cell]
             circle_lines += circ_f
             cross_lines += cros_f
 
@@ -88,4 +86,18 @@ class TicTacToe(Game):
             else:   # game is still ongoing
                 return -1
 
-        return CIRCLE*circle_lines + CROSS*cross_lines
+        return self.CIRCLE*circle_lines + self.CROSS*cross_lines
+
+if __name__ == '__main__':
+    g = TicTacToe()
+    turn = 0
+    stat = g.eval_win_cond()
+
+    while stat==-1:
+        g.visualize()
+        x,y = input().split(' ')
+        act = 3*int(x)+int(y)
+        stat = g.take_action(turn, act)
+        turn = 1-turn
+
+    g.visualize()
