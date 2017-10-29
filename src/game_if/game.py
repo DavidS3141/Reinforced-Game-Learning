@@ -6,9 +6,11 @@
 
 class Game:
 
+    nbr_players = 2
+    state_dim = 27
+
     def __init__(self):
-        self.nbr_players = 2
-        self.state_dim = 27
+        return
 
     def take_action(player_id, action_id):
         return player_id_who_has_won #(-1 if still ongoing, -2 if draw, -3 if invalid move)

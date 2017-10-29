@@ -11,13 +11,13 @@ class TicTacToe():
     CIRCLE = 0
     CROSS = 1
     lines = [[(0, 0), (0, 1), (0, 2)], [(0, 0), (1, 0), (2, 0)], [(1, 0), (1, 1), (1, 2)], [(0, 1), (1, 1), (2, 1)], [(2, 0), (2, 1), (2, 2)], [(0, 2), (1, 2), (2, 2)], [(0, 0), (1, 1), (2, 2)], [(0, 2), (1, 1), (2, 0)]]
+    nbr_player = 2
+    state_dim = 27
 
     def __init__(self):
-        self.nbr_players = 2
         self.board = np.zeros(shape=(3,3,3))
         self.board[2,:,:] = 1.
         self.player_turn = self.CIRCLE
-        self.state_dim = 27
 
     def get_state_for_player(player_id):
         if player_id == 0:
