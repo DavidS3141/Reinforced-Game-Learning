@@ -44,6 +44,17 @@ class TicTacToe(Game):
 
         return self.eval_win_cond()
 
+    def visualize(self):
+        ords = ord(' ')*self.board[2,:,:]
+        ords += ord('O')*self.board[0,:,:]
+        ords += ord('X')*self.board[1,:,:]
+        ords = np.array(ords, dtype=int)
+        print(' %s | %s | %s '%tuple([chr(s) for s in ords[0]]))
+        print('---+---+---')
+        print(' %s | %s | %s '%tuple([chr(s) for s in ords[1]]))
+        print('---+---+---')
+        print(' %s | %s | %s '%tuple([chr(s) for s in ords[2]]))
+
     def action_id_2_xy(id):
         return (id//3, id%3)
 

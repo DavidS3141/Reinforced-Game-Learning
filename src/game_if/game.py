@@ -14,3 +14,6 @@ class Game:
 
     def get_action_list():
         return
+
+    def visualize():
+        return
