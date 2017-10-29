@@ -17,6 +17,15 @@ class TicTacToe():
         self.board = np.zeros(shape=(3,3,3))
         self.board[2,:,:] = 1.
         self.player_turn = self.CIRCLE
+        self.state_dim = 27
+
+    def get_state_for_player(player_id):
+        if player_id == 0:
+            return self.board.flatten()
+        elif player_id == 1:
+            return self.board[[1,0,2]].flatten()
+        else:
+            raise Exception('The player %d does not exist!'%player_id)
 
     def get_action_list():
         return range(9)
