@@ -5,7 +5,8 @@
 ################################################################################
 
 import tensorflow as tf
-from tf_activations import get_activation
+import numpy as np
+from helper.tf_activations import get_activation
 
 def fc_network(x, layer_sizes, name, act='relu'):
     with tf.name_scope(name):

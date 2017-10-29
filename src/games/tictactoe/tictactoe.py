@@ -19,7 +19,7 @@ class TicTacToe():
         self.board[2,:,:] = 1.
         self.player_turn = self.CIRCLE
 
-    def get_state_for_player(player_id):
+    def get_state_for_player(self, player_id):
         if player_id == 0:
             return self.board.flatten()
         elif player_id == 1:
@@ -27,7 +27,7 @@ class TicTacToe():
         else:
             raise Exception('The player %d does not exist!'%player_id)
 
-    def get_action_list():
+    def get_action_list(self):
         return range(9)
 
     def take_action(self, player_id, action_id):
@@ -85,8 +85,6 @@ class TicTacToe():
             circle_lines += circ_f
             cross_lines += cros_f
 
-        assert(circle_lines <= 1)
-        assert(cross_lines <= 1)
         assert(cross_lines * circle_lines == 0)
 
         if cross_lines == 0 and circle_lines == 0:
@@ -95,7 +93,12 @@ class TicTacToe():
             else:   # game is still ongoing
                 return -1
 
-        return self.CIRCLE*circle_lines + self.CROSS*cross_lines
+        if cross_lines > 0:
+            return self.CROSS
+        elif circle_lines > 0:
+            return self.CIRCLE
+        else:
+            raise Exception('Logic Error!')
 
 if __name__ == '__main__':
     g = TicTacToe()
