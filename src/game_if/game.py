@@ -10,7 +10,7 @@ class Game:
         self.nbr_players = 2
 
     def take_action(player_id, action_id):
-        return player_id_who_has_won #(-1 if invalid move, -2 if still ongoing, -3 if draw)
+        return player_id_who_has_won #(-1 if still ongoing, -2 if draw, -3 if invalid move)
 
     def get_action_list():
         return
