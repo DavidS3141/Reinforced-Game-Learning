@@ -8,10 +8,19 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 from games.tictactoe.tictactoe import TicTacToe as Game
+from games.tictactoe.tictactoe_ai import ai, semi_random_ai, random_ai
 from model.inference import inference
 from model.loss import loss
 from model.training import training
 from copy import deepcopy as copy
+
+def smooth_data(x, b):
+    res = []
+    c_val = 0.
+    for i, val in enumerate(x):
+        c_val = c_val * b + val * (1.-b)
+        res.append(c_val/(1-b**(i+1)))
+    return res
 
 def get_action_id_from_values(values, riskyness = 0.01):
     v1 = np.max(values)
@@ -34,6 +43,36 @@ def get_action_id_from_values(values, riskyness = 0.01):
         return idx1
     return idx2
 
+def get_nn_action(game):
+    player_turn = game.get_player_turn()
+    action_list = game.get_action_list()
+    states = []
+    for act in action_list:
+        co = copy(game)
+        co.take_action(player_turn, act)
+        state = co.get_state_for_player(player_turn)
+        states.append(state)
+    val = sess.run(net_out, feed_dict={net_in: states})
+    idx = get_action_id_from_values(val)
+    return action_list[idx]
+
+def play_game(p1, p2):
+    game = Game()
+    status = game.get_status()
+    while status == -1:
+        if game.get_player_turn() == 0:
+            a = p1(game)
+        else:
+            a = p2(game)
+        game.take_action(game.get_player_turn(), a)
+        status = game.get_status()
+    res = status
+    if status == -2:
+        res = 0.5
+    elif status == -3:
+        res = game.get_player_turn()
+    return res
+
 state_dim = Game.state_dim
 learning_rate = 1e-3
 
@@ -44,14 +83,15 @@ net_loss = loss(net_logits, net_labels)
 net_trainer = training(net_loss, learning_rate)
 rounds_played = []
 loss_list = []
+random_eval = []
+semi_random_eval = []
+ai_eval = []
+eval_counter = []
 
 with tf.Session() as sess:
-
-    train_writer = tf.summary.FileWriter('data/',
-                                      sess.graph)
-
+    train_writer = tf.summary.FileWriter('data/', sess.graph)
     sess.run(tf.global_variables_initializer())
-    for train_step in range(1000000):
+    for train_step in range(100000):
         if train_step % 10000 == 0:
             human = False
         else:
@@ -67,17 +107,9 @@ with tf.Session() as sess:
                 game.visualize()
                 a = int(input())
             else:
-                action_list = game.get_action_list()
-                states = []
-                for act in action_list:
-                    co = copy(game)
-                    co.take_action(playersTurn, act)
-                    state = co.get_state_for_player(playersTurn)
-                    states.append(state)
-                val = sess.run(net_out, feed_dict={net_in: states})
-                idx = get_action_id_from_values(val)
-                a = action_list[idx]
-            status = game.take_action(playersTurn, a)
+                a = get_nn_action(game)
+            game.take_action(playersTurn, a)
+            status = game.get_status()
             if status == -3:
                 status = 1-playersTurn
             game_states[playersTurn].append(game.get_state_for_player(playersTurn))
@@ -103,9 +135,23 @@ with tf.Session() as sess:
         _, preds, losses = sess.run([net_trainer, net_out, net_loss], feed_dict={net_in: game_states, net_labels:labels})
         loss_list.append(losses)
         if train_step%100==0:
-            plt.plot(rounds_played, label='rounds played')
-            plt.plot(loss_list, label='losses')
+            eval_counter.append(train_step)
+            ai_eval.append(play_game(ai,get_nn_action)+1-play_game(get_nn_action,ai))
+            random_eval.append(play_game(random_ai,get_nn_action)+1-play_game(get_nn_action,random_ai))
+            semi_random_eval.append(play_game(semi_random_ai,get_nn_action)+1-play_game(get_nn_action,semi_random_ai))
+        if train_step%100==0:
+            plt.plot(smooth_data(rounds_played, .99), 'b', label='rounds played')
+            plt.plot(smooth_data(rounds_played, .999), 'b')
+            plt.plot(smooth_data(loss_list, .99), 'c', label='losses')
+            plt.plot(smooth_data(loss_list, .999), 'c')
+            plt.plot(eval_counter, smooth_data(semi_random_eval, .9), 'r', label='semi-random eval')
+            plt.plot(eval_counter, smooth_data(semi_random_eval, .99), 'r')
+            plt.plot(eval_counter, smooth_data(random_eval, .9), 'm', label='random eval')
+            plt.plot(eval_counter, smooth_data(random_eval, .99), 'm')
+            plt.plot(eval_counter, smooth_data(ai_eval, .9), 'y', label='ai eval')
+            plt.plot(eval_counter, smooth_data(ai_eval, .99), 'y')
             plt.legend()
+            plt.grid()
             plt.savefig('evolution.png')
             plt.close()
             game.visualize()
