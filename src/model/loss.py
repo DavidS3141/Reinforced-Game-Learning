@@ -16,4 +16,4 @@ def loss(logits, labels):
     Returns:
         loss: Loss tensor of type float.
     """
-    return tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits))
+    return tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits))

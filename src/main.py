@@ -4,22 +4,23 @@
 
 ################################################################################
 
+import sys, select
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
-from games.tictactoe.tictactoe import TicTacToe as Game
-from games.tictactoe.tictactoe_ai import ai, semi_random_ai, random_ai
+from games.ultimate_tictactoe.ultimate_tictactoe import Ultimate_TicTacToe as Game
+from games.ultimate_tictactoe.ultimate_tictactoe_ai import random_ai, semi_random_ai
 from model.inference import inference
 from model.loss import loss
 from model.training import training
 from copy import deepcopy as copy
 
-def smooth_data(x, b):
+def smooth_data(x, b, factor=1):
     res = []
     c_val = 0.
     for i, val in enumerate(x):
         c_val = c_val * b + val * (1.-b)
-        res.append(c_val/(1-b**(i+1)))
+        res.append(c_val*factor/(1-b**(i+1)))
     return res
 
 def get_action_id_from_values(values, riskyness = 0.01):
@@ -78,7 +79,7 @@ learning_rate = 1e-3
 
 net_in = tf.placeholder(tf.float32, shape=(None,state_dim))
 net_labels = tf.placeholder(tf.float32, shape=(None,1))
-net_out, net_logits = inference(net_in)
+net_out, net_logits = inference(net_in, state_dim)
 net_loss = loss(net_logits, net_labels)
 net_trainer = training(net_loss, learning_rate)
 rounds_played = []
@@ -89,11 +90,24 @@ ai_eval = []
 eval_counter = []
 
 with tf.Session() as sess:
+    saver = tf.train.Saver()
     train_writer = tf.summary.FileWriter('data/', sess.graph)
     sess.run(tf.global_variables_initializer())
     for train_step in range(100000):
         if train_step % 10000 == 0:
-            human = False
+            print('Do you want to play? [N/y] (10 sec)')
+            i, o, e = select.select( [sys.stdin], [], [], 10 )
+            if (i):
+                res = sys.stdin.readline().strip()
+            else:
+                res = 'N'
+            if res == 'N' or res == 'n' or len(res)==0:
+                human=False
+            elif res == 'y' or res == 'Y':
+                human = True
+            else:
+                print('Wrong answer! Exit!')
+                quit()
         else:
             human = False
         game = Game()
@@ -105,7 +119,8 @@ with tf.Session() as sess:
             round_count += 1
             if human and playersTurn == 1:
                 game.visualize()
-                a = int(input())
+                xs,ys,x,y = input().split(' ')
+                a = 27*int(xs)+9*int(ys)+3*int(x)+int(y)
             else:
                 a = get_nn_action(game)
             game.take_action(playersTurn, a)
@@ -136,24 +151,25 @@ with tf.Session() as sess:
         loss_list.append(losses)
         if train_step%100==0:
             eval_counter.append(train_step)
-            ai_eval.append(play_game(ai,get_nn_action)+1-play_game(get_nn_action,ai))
+            # ai_eval.append(play_game(ai,get_nn_action)+1-play_game(get_nn_action,ai))
             random_eval.append(play_game(random_ai,get_nn_action)+1-play_game(get_nn_action,random_ai))
             semi_random_eval.append(play_game(semi_random_ai,get_nn_action)+1-play_game(get_nn_action,semi_random_ai))
         if train_step%100==0:
+            saver.save(sess, '../data/ultimate_tictactoe/ut', global_step = train_step)
             plt.plot(smooth_data(rounds_played, .99), 'b', label='rounds played')
             plt.plot(smooth_data(rounds_played, .999), 'b')
             plt.plot(smooth_data(loss_list, .99), 'c', label='losses')
             plt.plot(smooth_data(loss_list, .999), 'c')
-            plt.plot(eval_counter, smooth_data(semi_random_eval, .9), 'r', label='semi-random eval')
-            plt.plot(eval_counter, smooth_data(semi_random_eval, .99), 'r')
-            plt.plot(eval_counter, smooth_data(random_eval, .9), 'm', label='random eval')
-            plt.plot(eval_counter, smooth_data(random_eval, .99), 'm')
-            plt.plot(eval_counter, smooth_data(ai_eval, .9), 'y', label='ai eval')
-            plt.plot(eval_counter, smooth_data(ai_eval, .99), 'y')
-            plt.legend()
+            plt.plot(eval_counter, smooth_data(semi_random_eval, .9, factor=30), 'r', label='semi-random eval')
+            plt.plot(eval_counter, smooth_data(semi_random_eval, .99, factor=30), 'r')
+            plt.plot(eval_counter, smooth_data(random_eval, .9, factor=30), 'm', label='random eval')
+            plt.plot(eval_counter, smooth_data(random_eval, .99, factor=30), 'm')
+            #plt.plot(eval_counter, smooth_data(ai_eval, .9), 'y', label='ai eval')
+            #plt.plot(eval_counter, smooth_data(ai_eval, .99), 'y')
+            plt.legend(loc='lower left')
             plt.grid()
-            plt.savefig('evolution.png')
+            plt.savefig('../data/ultimate_tictactoe/evolution.png')
             plt.close()
             game.visualize()
-            print(game_states)
+            # print(game_states)
             print(losses)
