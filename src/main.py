@@ -15,6 +15,8 @@ from model.loss import loss
 from model.training import training
 from copy import deepcopy as copy
 
+data_dir = '/net/scratch/cms/dschmidt/rgl/'
+
 def smooth_data(x, b, factor=1):
     res = []
     c_val = 0.
@@ -91,7 +93,7 @@ eval_counter = []
 
 with tf.Session() as sess:
     saver = tf.train.Saver()
-    train_writer = tf.summary.FileWriter('data/', sess.graph)
+    train_writer = tf.summary.FileWriter(data_dir+'tb/', sess.graph)
     sess.run(tf.global_variables_initializer())
     for train_step in range(100000):
         if train_step % 10000 == 0:
@@ -155,7 +157,7 @@ with tf.Session() as sess:
             random_eval.append(play_game(random_ai,get_nn_action)+1-play_game(get_nn_action,random_ai))
             semi_random_eval.append(play_game(semi_random_ai,get_nn_action)+1-play_game(get_nn_action,semi_random_ai))
         if train_step%100==0:
-            saver.save(sess, '../data/ultimate_tictactoe/ut', global_step = train_step)
+            saver.save(sess, data_dir+'ultimate_tictactoe/ut', global_step = train_step)
             plt.plot(smooth_data(rounds_played, .99), 'b', label='rounds played')
             plt.plot(smooth_data(rounds_played, .999), 'b')
             plt.plot(smooth_data(loss_list, .99), 'c', label='losses')
@@ -168,7 +170,7 @@ with tf.Session() as sess:
             #plt.plot(eval_counter, smooth_data(ai_eval, .99), 'y')
             plt.legend(loc='lower left')
             plt.grid()
-            plt.savefig('../data/ultimate_tictactoe/evolution.png')
+            plt.savefig(data_dir+'ultimate_tictactoe/evolution.png')
             plt.close()
             game.visualize()
             # print(game_states)
