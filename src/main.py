@@ -8,14 +8,16 @@ import sys, select
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
-from games.ultimate_tictactoe.ultimate_tictactoe import Ultimate_TicTacToe as Game
-from games.ultimate_tictactoe.ultimate_tictactoe_ai import random_ai, semi_random_ai
+# from games.ultimate_tictactoe.ultimate_tictactoe import Ultimate_TicTacToe as Game
+# from games.ultimate_tictactoe.ultimate_tictactoe_ai import random_ai, semi_random_ai
+from games.tictactoe.tictactoe import TicTacToe as Game
+from games.tictactoe.tictactoe_ai import random_ai, semi_random_ai
 from model.inference import inference
 from model.loss import loss
 from model.training import training
 from copy import deepcopy as copy
 
-data_dir = '/net/scratch/cms/dschmidt/rgl/'
+data_dir = '/net/scratch/cms/dschmidt/rgl/tictactoe/'
 
 def smooth_data(x, b, factor=1):
     res = []
@@ -157,7 +159,7 @@ with tf.Session() as sess:
             random_eval.append(play_game(random_ai,get_nn_action)+1-play_game(get_nn_action,random_ai))
             semi_random_eval.append(play_game(semi_random_ai,get_nn_action)+1-play_game(get_nn_action,semi_random_ai))
         if train_step%100==0:
-            saver.save(sess, data_dir+'ultimate_tictactoe/ut', global_step = train_step)
+            saver.save(sess, data_dir+'model/ut', global_step = train_step)
             plt.plot(smooth_data(rounds_played, .99), 'b', label='rounds played')
             plt.plot(smooth_data(rounds_played, .999), 'b')
             plt.plot(smooth_data(loss_list, .99), 'c', label='losses')
@@ -170,7 +172,7 @@ with tf.Session() as sess:
             #plt.plot(eval_counter, smooth_data(ai_eval, .99), 'y')
             plt.legend(loc='lower left')
             plt.grid()
-            plt.savefig(data_dir+'ultimate_tictactoe/evolution.png')
+            plt.savefig(data_dir+'evolution.png')
             plt.close()
             game.visualize()
             # print(game_states)
