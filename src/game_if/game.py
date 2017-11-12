@@ -8,6 +8,7 @@ class Game:
 
     nbr_players = 2
     state_dim = 27
+    max_nbr_actions = 9
 
     def __init__(self):
         return
