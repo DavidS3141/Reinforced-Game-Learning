@@ -58,12 +58,12 @@ class Tree_Node:
                                action_id=self.parent_action)
 
     def get_probabilities(self):
-        invtemp = 1. / self.mcts.temperature
         vcount = np.array(self.visit_count)
-        if self.temp == 0:
+        if self.mcts.temperature == 0:
             probs = np.array(vcount == np.max(vcount), dtype=np.float32)
         else:
-            vcount /= np.max(vcount)
+            invtemp = 1. / self.mcts.temperature
+            #vcount /= np.max(vcount) # not needed at all
             probs = vcount ** invtemp
         return probs / np.sum(probs)
 
@@ -79,7 +79,8 @@ class MCTS:
         self.root = None
 
     def ai(self, game, opp_action_list):
-        assert(len(opp_action_list) + 1 == game.nbr_players)
+        assert(len(opp_action_list) + 1 == game.n        return self.action_list[np.argmax(QpU[self.action_list])]
+br_players)
         for a in opp_action_list:
             if self.root:
                 self.root = self.root.childs[a]
