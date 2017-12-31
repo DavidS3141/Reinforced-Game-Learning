@@ -79,8 +79,7 @@ class MCTS:
         self.root = None
 
     def ai(self, game, opp_action_list):
-        assert(len(opp_action_list) + 1 == game.n        return self.action_list[np.argmax(QpU[self.action_list])]
-br_players)
+        assert(len(opp_action_list) + 1 == game.nbr_players)
         for a in opp_action_list:
             if self.root:
                 self.root = self.root.childs[a]
