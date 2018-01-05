@@ -62,6 +62,64 @@ class Game():
               tuple([chr(s) for s in ords[6:9, 2, :].flatten()]))
         print('---------------------------------------')
 
+    def minimal_visualize(self):
+        xorder = [0, 0, 0, 1, 1, 1, 2, 2, 2]
+        yorder = [0, 1, 2, 0, 1, 2, 0, 1, 2]
+        ords = ord(' ') * self.board[2, xorder, yorder, :, :]
+        ords += ord('O') * self.board[0, xorder, yorder, :, :]
+        ords += ord('X') * self.board[1, xorder, yorder, :, :]
+        ords = np.array(ords, dtype=int)
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[0:3, 0, :].flatten()]))
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[0:3, 1, :].flatten()]))
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[0:3, 2, :].flatten()]))
+        print('-----------')
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[3:6, 0, :].flatten()]))
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[3:6, 1, :].flatten()]))
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[3:6, 2, :].flatten()]))
+        print('-----------')
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[6:9, 0, :].flatten()]))
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[6:9, 1, :].flatten()]))
+        print('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[6:9, 2, :].flatten()]))
+
+    def minimal_visualize_arr(self):
+        xorder = [0, 0, 0, 1, 1, 1, 2, 2, 2]
+        yorder = [0, 1, 2, 0, 1, 2, 0, 1, 2]
+        ords = ord(' ') * self.board[2, xorder, yorder, :, :]
+        ords += ord('O') * self.board[0, xorder, yorder, :, :]
+        ords += ord('X') * self.board[1, xorder, yorder, :, :]
+        ords = np.array(ords, dtype=int)
+        char_arr = []
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[0:3, 0, :].flatten()]))
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[0:3, 1, :].flatten()]))
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[0:3, 2, :].flatten()]))
+        char_arr.append('-----------')
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[3:6, 0, :].flatten()]))
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[3:6, 1, :].flatten()]))
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[3:6, 2, :].flatten()]))
+        char_arr.append('-----------')
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[6:9, 0, :].flatten()]))
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[6:9, 1, :].flatten()]))
+        char_arr.append('%s%s%s|%s%s%s|%s%s%s' %
+              tuple([chr(s) for s in ords[6:9, 2, :].flatten()]))
+        return char_arr
+
     def get_player_turn(self):
         return self.player_turn
 
