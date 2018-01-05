@@ -77,6 +77,17 @@ class Tree_Node:
             probs = vcount ** invtemp
         return probs / np.sum(probs)
 
+    def leaves(self):
+        if self.terminal:
+            return 1
+        if sum(self.visit_count) == 0:
+            return 1
+        result = 0
+        for c in self.childs:
+            if c is not None:
+                result += c.leaves()
+        return result
+
 
 class MCTS:
     def __init__(self, mcts_net, player_id, nbr_sims=32, temperature=1,):
