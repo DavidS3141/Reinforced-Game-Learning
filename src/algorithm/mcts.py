@@ -2,8 +2,11 @@
 '''mcts.py: Implement the Monte-Carlo tree search based on a network policy.'''
 ###############################################################################
 
+import logging
 import numpy as np
 from copy import deepcopy as copy
+
+logger = logging.getLogger(__name__)
 
 
 class Tree_Node:
@@ -115,6 +118,7 @@ class MCTS:
             if node.childs[a] is None:
                 node.expand_eval(a)
             node.childs[a].backup()
+        self.visualize()
         return self.root.get_probabilities()
 
     def cut_root(self, game, action):
@@ -131,3 +135,9 @@ class MCTS:
                 print('after cut: terminal')
             self.root.parent = None
             self.root.parent_action = None
+
+    def visualize(self):
+        string_list = self.root.visualize()
+        logger.debug('-----Visualizing the MCTS-----')
+        for line in string_list:
+            logger.debug(line)
