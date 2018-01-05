@@ -91,6 +91,42 @@ class Tree_Node:
                 result += c.leaves()
         return result
 
+    def visualize(self):
+        """Returns the subtree in ASCII Art
+
+        Each entry corresponds to one line of the node's sub tree
+        in ASCII Art.
+        """
+        if self.parent is None:
+            P = '  '
+            N = '  '
+            Q = '  '
+        else:
+            P = '%02d' % self.parent.prior_probability[self.parent_action]*100
+            N = '%02d' % self.parent.visit_count[self.parent_action]
+            Q = '%02d' % self.parent.mean_action_value[self.parent_action]*100
+        V = '%02d' % self.values[0]
+        my_contribution = ['%s,%s,%s,%s' % (P,V,N,Q)] + \
+            self.game.minimal_visualize_arr()
+        child_contributions = ['']
+        for child in self.childs:
+            if child is None:
+                continue
+            cur_contribution = child.visualize()
+            while len(child_contributions) < len(cur_contribution):
+                child_contributions.append(' ' * len(child_contributions[0]))
+            while len(child_contributions) > len(cur_contribution):
+                cur_contribution.append(' ' * len(cur_contribution[0]))
+            for i in range(len(child_contributions)):
+                child_contributions[i] += ' ' + cur_contribution[i]
+        if len(child_contributions[0]) == 0:
+            return my_contribution
+        my_contribution.append(' ' * len(my_contribution[0]))
+        while len(child_contributions[0]) > len(my_contribution[0]):
+            for i in range(len(my_contribution)):
+                my_contribution[i] += ' '
+        return my_contribution + child_contributions
+
 
 class MCTS:
     def __init__(self, mcts_net, player_id, nbr_sims=32, temperature=1,):
