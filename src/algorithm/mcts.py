@@ -90,6 +90,7 @@ class MCTS:
     def evaluate(self, game):
         if self.root is None:
             self.root = Tree_Node(game, self)
+        print('initial visitcount:%d' % sum(self.root.visit_count))
         for i in range(self.nbr_sims):
             node = self.root
             while True:
@@ -108,9 +109,14 @@ class MCTS:
     def cut_root(self, game, action):
         if self.root is None:
             return
+        print('action_count:%d' % self.root.visit_count[action])
         assert (game.get_state_for_player(0)
                 == self.root.game.get_state_for_player(0)).all()
         self.root = self.root.childs[action]
         if self.root is not None:
+            try:
+                print('after cut: %d' % sum(self.root.visit_count))
+            except Exception:
+                print('after cut: terminal')
             self.root.parent = None
             self.root.parent_action = None
