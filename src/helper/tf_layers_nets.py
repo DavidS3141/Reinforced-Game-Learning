@@ -1,12 +1,12 @@
 #!/user/bin/env python
-
-'''tf_layers_nets.py: Serves functions returning layers and complete networks.'''
-
-################################################################################
+'''
+tf_layers_nets.py: Serves functions returning layers and complete networks.
+'''
+###############################################################################
+from helper.tf_activations import get_activation
 
 import tensorflow as tf
-import numpy as np
-from helper.tf_activations import get_activation
+
 
 def fc_network(x, layer_sizes, name, act='relu'):
     with tf.name_scope(name):

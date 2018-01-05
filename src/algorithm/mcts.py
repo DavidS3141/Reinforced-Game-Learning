@@ -14,15 +14,24 @@ class Tree_Node:
         self.childs = [None] * game.max_nbr_actions
         self.action_list = game.get_action_list()
         self.game = copy(game)
-        probs, values = mcts.network_func(game)
-        self.prior_probability = probs
-        self.visit_count = [0] * game.max_nbr_actions
-        self.total_action_value = [0] * game.max_nbr_actions
-        self.mean_action_value = [1. / game.nbr_players] * game.max_nbr_actions
-        self.values = values
+        if not self.game.is_terminal():
+            self.terminal = False
+            probs, values = mcts.mcts_net.evaluate(game.get_state_for_player(
+                game.get_player_turn()))
+            self.prior_probability = probs
+            self.values = values
+            self.visit_count = [0] * game.max_nbr_actions
+            self.total_action_value = [0] * game.max_nbr_actions
+            self.mean_action_value = [1. / game.nbr_players] \
+                * game.max_nbr_actions
+        else:
+            self.terminal = True
+            self.values = self.game.get_points()
+            for i in range(self.game.get_player_turn()):
+                self.values = list(self.values[1:]) + [self.values[0]]
 
     def select(self):
-        total_visit_count = sum(self.visit_count.values())
+        total_visit_count = sum(self.visit_count)
         if total_visit_count == 0:
             QpU = self.prior_probability
         else:
@@ -33,58 +42,52 @@ class Tree_Node:
 
     def expand_eval(self, action_id):
         new_game = copy(self.game)
-        new_game.take_action(action_id)
+        new_game.take_action(new_game.get_player_turn(), action_id)
         new_node = Tree_Node(new_game, self.mcts,
                              parent=self, parent_action=action_id)
         self.childs[action_id] = new_node
 
-    def backup(self, values=None, value_id=None, action_id=None):
-        if values:
-            assert(action_id)
-            assert(value_id)
+    def backup(self, values=None, action_id=None):
+        if values is not None:
+            assert action_id is not None
             self.visit_count[action_id] += 1
-            self.total_action_value[action_id] += values[value_id]
+            self.total_action_value[action_id] += values[0]
             self.mean_action_value[action_id] = \
                 self.total_action_value[action_id] / \
                 self.visit_count[action_id]
         else:
             values = self.values
-            value_id = 1
-        if self.parent:
-            assert(self.parent_action)
-            value_id = (self.game.nbr_players + value_id -
-                        1) % self.game.nbr_players
-            self.parent.backup(values=values, value_id=value_id,
-                               action_id=self.parent_action)
+        if self.parent is not None:
+            assert self.parent_action is not None
+            values = [values[-1]] + list(values[:-1])
+            self.parent.backup(values=values, action_id=self.parent_action)
 
     def get_probabilities(self):
-        invtemp = 1. / self.mcts.temperature
-        vcount = np.array(self.visit_count)
-        if self.temp == 0:
+        vcount = np.array(self.visit_count, dtype=np.float32)
+        if len(self.action_list) > 1:
+            if np.max(vcount) == np.sum(vcount):
+                print('ALARM!################################################')
+        print('%d, relative:%f' % (np.max(vcount),
+                                   np.max(vcount) / np.sum(vcount)))
+        if self.mcts.temperature == 0:
             probs = np.array(vcount == np.max(vcount), dtype=np.float32)
         else:
+            invtemp = 1. / self.mcts.temperature
             vcount /= np.max(vcount)
             probs = vcount ** invtemp
         return probs / np.sum(probs)
 
 
 class MCTS:
-    def __init__(self, network_func, player_id, logger_list=None, nbr_sims=30,
-                 temperature=1,):
-        self.network_func = network_func
+    def __init__(self, mcts_net, player_id, nbr_sims=32, temperature=1,):
+        self.mcts_net = mcts_net
         self.player_id = player_id
-        self.logger_list = logger_list
         self.nbr_sims = nbr_sims
         self.temperature = temperature
         self.root = None
+        self.c_puct = 20.0
 
-    def ai(self, game, opp_action_list):
-        assert(len(opp_action_list) + 1 == game.nbr_players)
-        for a in opp_action_list:
-            if self.root:
-                self.root = self.root.childs[a]
-                self.root.parent = None
-                self.root.parent_action = None
+    def evaluate(self, game):
         if self.root is None:
             self.root = Tree_Node(game, self)
         for i in range(self.nbr_sims):
@@ -92,17 +95,22 @@ class MCTS:
             while True:
                 a = node.select()
                 if node.childs[a] is not None:
+                    if node.childs[a].terminal:
+                        break
                     node = node.childs[a]
                 else:
                     break
-            node.expand_eval(a)
+            if node.childs[a] is None:
+                node.expand_eval(a)
             node.childs[a].backup()
-        probs = self.root.get_probabilities()
-        if self.logger_list:
-            self.logger_list.append(
-                (game.get_state_for_player(self.player_id), probs))
-        selected_action = np.random.choice(game.max_nbr_actions, p=probs)
-        self.root = self.root.childs[selected_action]
-        self.root.parent = None
-        self.root.parent_action = None
-        return selected_action
+        return self.root.get_probabilities()
+
+    def cut_root(self, game, action):
+        if self.root is None:
+            return
+        assert (game.get_state_for_player(0)
+                == self.root.game.get_state_for_player(0)).all()
+        self.root = self.root.childs[action]
+        if self.root is not None:
+            self.root.parent = None
+            self.root.parent_action = None

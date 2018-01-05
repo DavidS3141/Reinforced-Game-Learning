@@ -64,6 +64,35 @@ def ai(game):
     _, best_actions = eval_pos(game)
     return random.choice(best_actions)
 
+
+class Random_AI(object):
+    def set_player_id(self, player_id):
+        pass
+
+    def get_action(self, game):
+        return random.choice(game.get_action_list())
+
+    def set_next_action(self, game, action):
+        pass
+
+    def set_result(self, result):
+        pass
+
+
+class Semi_Random_AI(object):
+    def set_player_id(self, player_id):
+        pass
+
+    def get_action(self, game):
+        return random.choice(get_possible_actions(game))
+
+    def set_next_action(self, game, action):
+        pass
+
+    def set_result(self, result):
+        pass
+
+
 def random_ai(game):
     return random.choice(game.get_action_list())
 
@@ -71,9 +100,9 @@ def semi_random_ai(game):
     return random.choice(get_possible_actions(game))
 
 if __name__ == '__main__':
-    from tictactoe import TicTacToe
+    from tictactoe import Game
 
-    g = TicTacToe()
+    g = Game()
     turn = 0
     status = g.get_status()
     print('Do you want to start? [Y/n]')

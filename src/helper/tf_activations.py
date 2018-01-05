@@ -1,8 +1,6 @@
-#!/user/bin/env python
-
-'''tf_activations.py: Implement different activation functions for the network.'''
-
-################################################################################
+###########################
+# tensorflow activation functions
+###########################
 
 import tensorflow as tf
 
@@ -28,32 +26,32 @@ def tanh_num(x, name='tanh num'):
 
 def get_activation(name):
     if name == 'elu':
-        return tf.nn.elu, 1.
+        return tf.nn.elu, 1., 0.
     elif name == 'elu_num':
-        return tf.nn.elu, 1.6444
+        return tf.nn.elu, 1.321939, 0.250422
     elif name == 'leaky_relu':
-        return leaky_relu, 1.92308
+        return leaky_relu, 1.546460, 0.493559
     elif name == 'relu':
-        return tf.nn.relu, 2.
+        return tf.nn.relu, 1.712859, 0.683332
     elif name == 'relu6':
-        return tf.nn.relu6, 2.001745
+        return tf.nn.relu6, 1.713838, 0.683622
     elif name == 'selu':
-        return selu, 1.
+        return selu, 1., 0.
     elif name == 'sigmoid':
-        return tf.nn.sigmoid, 12.8
+        return tf.nn.sigmoid, 4., 0.5
     elif name == 'sigmoid_num':
-        return sigmoid_num, 2.55805
+        return sigmoid_num, 2.751695, 1.4
     elif name == 'softplus':
-        return tf.nn.softplus, 2.701875684
+        return tf.nn.softplus, 2.0, 0.693147
     elif name == 'softplus_num':
-        return tf.nn.softplus, 1.66423
+        return tf.nn.softplus, 1.843839, 1.021192
     elif name == 'softsign':
-        return tf.nn.softsign, 1.
+        return tf.nn.softsign, 1., 0.
     elif name == 'softsign_num':
-        return softsign_num, 2.02481
+        return softsign_num, 1.422959, 0.
     elif name == 'tanh':
-        return tf.nn.tanh, 1.
+        return tf.nn.tanh, 1., 0.
     elif name == 'tanh_num':
-        return tanh_num, 1.31510
+        return tanh_num, 1.147216, 0.
     else:
-        return None, None
+        return None, None, None

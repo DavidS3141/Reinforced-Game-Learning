@@ -6,13 +6,14 @@
 
 import numpy as np
 
-class TicTacToe():
+class Game():
 
     CIRCLE = 0
     CROSS = 1
     lines = [[(0, 0), (0, 1), (0, 2)], [(0, 0), (1, 0), (2, 0)], [(1, 0), (1, 1), (1, 2)], [(0, 1), (1, 1), (2, 1)], [(2, 0), (2, 1), (2, 2)], [(0, 2), (1, 2), (2, 2)], [(0, 0), (1, 1), (2, 2)], [(0, 2), (1, 1), (2, 0)]]
     nbr_players = 2
     state_dim = 27
+    max_nbr_actions = 9
 
     def __init__(self):
         self.board = np.zeros(shape=(3,3,3))
@@ -102,7 +103,7 @@ class TicTacToe():
         return (a_id//3, a_id%3)
 
 if __name__ == '__main__':
-    g = TicTacToe()
+    g = Game()
     turn = 0
     stat = g.get_status()
 
