@@ -69,11 +69,11 @@ class Tree_Node:
 
     def get_probabilities(self):
         vcount = np.array(self.visit_count, dtype=np.float32)
-        if len(self.action_list) > 1:
-            if np.max(vcount) == np.sum(vcount):
-                print('ALARM!################################################')
-        print('%d, relative:%f' % (np.max(vcount),
-                                   np.max(vcount) / np.sum(vcount)))
+        # if len(self.action_list) > 1:
+        #     if np.max(vcount) == np.sum(vcount):
+        #         print('ALARM!################################################')
+        # print('%d, relative:%f' % (np.max(vcount),
+        #                            np.max(vcount) / np.sum(vcount)))
         if self.mcts.temperature == 0:
             probs = np.array(vcount == np.max(vcount), dtype=np.float32)
         else:
@@ -100,16 +100,23 @@ class Tree_Node:
         in ASCII Art.
         """
         if self.parent is None:
-            P = '  '
-            N = '  '
-            Q = '  '
+            P = '   '
+            N = '   '
+            Q = '   '
         else:
-            P = '%02d' % round(self.parent.prior_probability[self.parent_action]*100)
-            N = '%02d' % self.parent.visit_count[self.parent_action]
-            Q = '%02d' % round(self.parent.mean_action_value[self.parent_action]*100)
-        V = '%02d' % round(self.values[0] * 100)
-        my_contribution = ['%s,%s,%s,%s' % (P[-2:],V[-2:],N[-2:],Q[-2:])] + \
-            self.game.minimal_visualize_arr()
+            P = '%03d' % \
+                round(self.parent.prior_probability[self.parent_action] * 100)
+            N = '%03d' % self.parent.visit_count[self.parent_action]
+            Q = '%03d' % \
+                round(self.parent.mean_action_value[self.parent_action] * 100)
+        V = '%03d' % round(self.values[0] * 100)
+        my_contribution = ['%s,%s,%s,%s' % (P, V, N, Q)]
+        assert len(my_contribution[0]) == 15
+        game_viz = self.game.minimal_visualize_arr()
+        while len(my_contribution[0]) > len(game_viz[0]):
+            for i in range(len(game_viz)):
+                game_viz[i] += ' '
+        my_contribution += game_viz
         child_contributions = ['']
         for child in self.childs:
             if child is None:
@@ -145,7 +152,7 @@ class MCTS:
     def evaluate(self, game):
         if self.root is None:
             self.root = Tree_Node(game, self)
-        print('initial visitcount:%d' % sum(self.root.visit_count))
+        # print('initial visitcount:%d' % sum(self.root.visit_count))
         for i in range(self.nbr_sims):
             node = self.root
             while True:
@@ -159,21 +166,21 @@ class MCTS:
             if node.childs[a] is None:
                 node.expand_eval(a)
             node.childs[a].backup()
-        self.visualize()
+        # self.visualize()
         return self.root.get_probabilities()
 
     def cut_root(self, game, action):
         if self.root is None:
             return
-        print('action_count:%d' % self.root.visit_count[action])
+        # print('action_count:%d' % self.root.visit_count[action])
         assert (game.get_state_for_player(0)
                 == self.root.game.get_state_for_player(0)).all()
         self.root = self.root.childs[action]
         if self.root is not None:
-            try:
-                print('after cut: %d' % sum(self.root.visit_count))
-            except Exception:
-                print('after cut: terminal')
+            # try:
+            #     print('after cut: %d' % sum(self.root.visit_count))
+            # except Exception:
+            #     print('after cut: terminal')
             self.root.parent = None
             self.root.parent_action = None
 

@@ -14,7 +14,7 @@ class Game():
              [(2, 0), (2, 1), (2, 2)], [(0, 2), (1, 2), (2, 2)],
              [(0, 0), (1, 1), (2, 2)], [(0, 2), (1, 1), (2, 0)]]
     nbr_players = 2
-    state_dim = 81 * 3
+    state_dim = 81 * 3 + 9
     max_nbr_actions = 81
 
     def __init__(self):
@@ -272,10 +272,13 @@ class Game():
         return poss_actions
 
     def get_state_for_player(self, player_id):
+        lm = np.zeros(9)
+        if self.last_move >= 0:
+            lm[self.last_move % 9] = 1.
         if player_id == 0:
-            return self.board.flatten()
+            return np.concatenate([self.board.flatten(), lm])
         elif player_id == 1:
-            return self.board[[1, 0, 2]].flatten()
+            return np.concatenate([self.board[[1, 0, 2]].flatten(), lm])
         else:
             raise Exception('The player %d does not exist!' % player_id)
 
