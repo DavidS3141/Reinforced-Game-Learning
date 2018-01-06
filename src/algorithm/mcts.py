@@ -3,10 +3,12 @@
 ###############################################################################
 
 import logging
+import logging.config
 import numpy as np
 from copy import deepcopy as copy
 
-logger = logging.getLogger(__name__)
+logging.config.fileConfig('../cfg/logging.cfg')
+logger = logging.getLogger('mcts_visualize')
 
 
 class Tree_Node:
@@ -102,11 +104,11 @@ class Tree_Node:
             N = '  '
             Q = '  '
         else:
-            P = '%02d' % self.parent.prior_probability[self.parent_action]*100
+            P = '%02d' % round(self.parent.prior_probability[self.parent_action]*100)
             N = '%02d' % self.parent.visit_count[self.parent_action]
-            Q = '%02d' % self.parent.mean_action_value[self.parent_action]*100
-        V = '%02d' % self.values[0]
-        my_contribution = ['%s,%s,%s,%s' % (P,V,N,Q)] + \
+            Q = '%02d' % round(self.parent.mean_action_value[self.parent_action]*100)
+        V = '%02d' % round(self.values[0] * 100)
+        my_contribution = ['%s,%s,%s,%s' % (P[-2:],V[-2:],N[-2:],Q[-2:])] + \
             self.game.minimal_visualize_arr()
         child_contributions = ['']
         for child in self.childs:
@@ -121,6 +123,9 @@ class Tree_Node:
                 child_contributions[i] += ' ' + cur_contribution[i]
         if len(child_contributions[0]) == 0:
             return my_contribution
+        for i in range(len(child_contributions)):
+            child_contributions[i] = child_contributions[i][1:]
+
         my_contribution.append(' ' * len(my_contribution[0]))
         while len(child_contributions[0]) > len(my_contribution[0]):
             for i in range(len(my_contribution)):
