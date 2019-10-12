@@ -1,64 +1,104 @@
-#!/user/bin/env python
-
-'''tic-tac-toe.py: Implement the game of Tic-Tac-Toe.'''
-
-################################################################################
+#!/usr/bin/env python3
 
 import numpy as np
+from games.game import Game, GameEngine
+from players.basic_players import Random, Human
 
-class Game():
+
+class TicTacToe(Game):
 
     CIRCLE = 0
     CROSS = 1
-    lines = [[(0, 0), (0, 1), (0, 2)], [(0, 0), (1, 0), (2, 0)], [(1, 0), (1, 1), (1, 2)], [(0, 1), (1, 1), (2, 1)], [(2, 0), (2, 1), (2, 2)], [(0, 2), (1, 2), (2, 2)], [(0, 0), (1, 1), (2, 2)], [(0, 2), (1, 1), (2, 0)]]
+    lines = [
+        [(0, 0), (0, 1), (0, 2)],
+        [(0, 0), (1, 0), (2, 0)],
+        [(1, 0), (1, 1), (1, 2)],
+        [(0, 1), (1, 1), (2, 1)],
+        [(2, 0), (2, 1), (2, 2)],
+        [(0, 2), (1, 2), (2, 2)],
+        [(0, 0), (1, 1), (2, 2)],
+        [(0, 2), (1, 1), (2, 0)],
+    ]
     nbr_players = 2
-    state_dim = 27
+    state_dimensionality = 27
     max_nbr_actions = 9
 
-    def __init__(self):
-        self.board = np.zeros(shape=(3,3,3))
-        self.board[2,:,:] = 1.
-        self.player_turn = self.CIRCLE
+    def generate_initial_state(self):
+        board = np.zeros(shape=(3, 3, 3))
+        board[2, :, :] = 1
+        return dict(board=board, turn=self.CIRCLE)
 
-    def visualize(self):
-        ords = ord(' ')*self.board[2,:,:]
-        ords += ord('O')*self.board[0,:,:]
-        ords += ord('X')*self.board[1,:,:]
+    def flatten_state(self, state):
+        if state["turn"] == 0:
+            return state["board"].flatten()
+        elif state["turn"] == 1:
+            return state["board"][[1, 0, 2]].flatten()
+        else:
+            raise Exception("The player %d does not exist!" % state["turn"])
+
+    def visualize(self, state):
+        ords = ord(" ") * state["board"][2, :, :]
+        ords += ord("O") * state["board"][0, :, :]
+        ords += ord("X") * state["board"][1, :, :]
         ords = np.array(ords, dtype=int)
-        print(' %s | %s | %s '%tuple([chr(s) for s in ords[0]]))
-        print('---+---+---')
-        print(' %s | %s | %s '%tuple([chr(s) for s in ords[1]]))
-        print('---+---+---')
-        print(' %s | %s | %s '%tuple([chr(s) for s in ords[2]]))
+        ords[
+            np.logical_and(
+                np.logical_and(ords != ord(" "), ords != ord("X")), ords != ord("O")
+            )
+        ] = ord("#")
+        lines = []
+        lines.append(" %s | %s | %s " % tuple([chr(s) for s in ords[0]]))
+        lines.append("---+---+---")
+        lines.append(" %s | %s | %s " % tuple([chr(s) for s in ords[1]]))
+        lines.append("---+---+---")
+        lines.append(" %s | %s | %s " % tuple([chr(s) for s in ords[2]]))
+        return "\n".join(lines)
 
-    def get_player_turn(self):
-        return self.player_turn
+    def get_player_turn(self, state):
+        return state["turn"]
 
-    def take_action(self, player_id, action_id):
-        if self.player_turn != player_id:
-            raise Exception('It was not player_id %d\'s turn!'%player_id)
+    def take_action(self, state, player_id, action_id):
+        if self.get_player_turn(state) != player_id:
+            raise Exception("It was not player_id %d's turn!" % player_id)
 
-        old_status = self.get_status()
+        old_status = self.get_status(state)
 
         if old_status >= 0:
-            raise Exception('Game was already won by player %d!'%old_status)
+            raise Exception("Game was already won by player %d!" % old_status)
         if old_status == -2:
-            raise Exception('Game was already finished with a draw!')
+            raise Exception("Game was already finished with a draw!")
         if old_status == -3:
-            raise Exception('Game was already finished by an invalid move!')
+            raise Exception("Game was already finished by an invalid move!")
 
-        x,y = self.action_id_2_xy(action_id)
+        x, y = self.action_id_2_xy(action_id)
 
-        self.board[2,x,y] -= 1
-        self.board[player_id,x,y] += 1
-        self.player_turn = 1-self.player_turn
+        board = state["board"].copy()
+        board[2, x, y] -= 1
+        board[player_id, x, y] += 1
+        return dict(board=board, turn=1 - state["turn"])
 
-    def get_status(self):
-        assert(np.max(self.board[2,:,:])<=1)
-        assert(np.min(self.board[:2,:,:])>=0)
-        assert(np.all(np.sum(self.board, axis=0)==np.ones([3,3])))
+    def is_terminal(self, state):
+        return self.get_status(state) != -1
 
-        if np.min(self.board[2,:,:])<0: # invalid move
+    def get_points(self, state):
+        status = self.get_status(state)
+        assert status != -1
+        if status == -3:  # invalid move, set status to winner id
+            status = state["turn"]
+        if status == 0:
+            return [1.0, -1.0]
+        if status == 1:
+            return [-1.0, 1.0]
+        if status == -2:
+            return [0.0, 0.0]
+        raise Exception("LogicError")
+
+    def get_status(self, state):
+        assert np.max(state["board"][2, :, :]) <= 1
+        assert np.min(state["board"][:2, :, :]) >= 0
+        assert np.all(np.sum(state["board"], axis=0) == np.ones([3, 3]))
+
+        if np.min(state["board"][2, :, :]) < 0:  # invalid move
             return -3
 
         circle_lines = 0
@@ -68,17 +108,19 @@ class Game():
             circ_f = 1
             cros_f = 1
             for cell in line:
-                circ_f *= self.board[self.CIRCLE][cell]
-                cros_f *= self.board[self.CROSS][cell]
+                circ_f *= state["board"][self.CIRCLE][cell]
+                cros_f *= state["board"][self.CROSS][cell]
             circle_lines += circ_f
             cross_lines += cros_f
 
-        assert(cross_lines * circle_lines == 0)
+        assert cross_lines * circle_lines == 0
 
         if cross_lines == 0 and circle_lines == 0:
-            if np.max(self.board[2,:,:]) == 0:  # no possible move left, it is a draw
+            if (
+                np.max(state["board"][2, :, :]) == 0
+            ):  # no possible move left, it is a draw
                 return -2
-            else:   # game is still ongoing
+            else:  # game is still ongoing
                 return -1
 
         if cross_lines > 0:
@@ -86,33 +128,29 @@ class Game():
         elif circle_lines > 0:
             return self.CIRCLE
         else:
-            raise Exception('Logic Error!')
+            raise Exception("Logic Error!")
 
-    def get_action_list(self):
-        return range(9)
+    def get_action_list(self, state):
+        xy_valids = np.where(state["board"][2] == 1)
+        return [self.xy_2_action_id(x, y) for x, y in zip(*xy_valids)]
 
-    def get_state_for_player(self, player_id):
-        if player_id == 0:
-            return self.board.flatten()
-        elif player_id == 1:
-            return self.board[[1,0,2]].flatten()
-        else:
-            raise Exception('The player %d does not exist!'%player_id)
+    def action_id_2_xy(self, action_id):
+        return (action_id // 3, action_id % 3)
 
-    def action_id_2_xy(self, a_id):
-        return (a_id//3, a_id%3)
+    def xy_2_action_id(self, x, y):
+        return 3 * x + y
 
-if __name__ == '__main__':
-    g = Game()
-    turn = 0
-    stat = g.get_status()
+    def user_input_2_action(self):
+        print("Please provide your next turn through x,y input coordinates!")
+        x, y = map(lambda x: int(x) - 1, input().split())
+        return self.xy_2_action_id(x, y)
 
-    while stat==-1:
-        g.visualize()
-        x,y = input().split(' ')
-        act = 3*int(x)+int(y)
-        g.take_action(turn, act)
-        stat = g.get_status()
-        turn = 1-turn
+    def action_2_user_output(self, action_id):
+        return str(tuple([v + 1 for v in self.action_id_2_xy(action_id)]))
 
-    g.visualize()
+
+if __name__ == "__main__":
+    game = TicTacToe()
+    players = [Random(game), Human(game)]
+    engine = GameEngine(game, players)
+    engine.run()
