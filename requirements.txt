@@ -1,0 +1,9 @@
+flake8
+flake8-bugbear
+isort
+matplotlib
+numpy
+pre-commit
+pyyaml
+tensorflow==v1.13.2
+tqdm
