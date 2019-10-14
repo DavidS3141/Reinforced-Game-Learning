@@ -1,4 +1,4 @@
-#!/user/bin/env python
+#!/usr/bin/env python
 
 '''tictactoe_ai.py: Implement an ai for the game of Tic-Tac-Toe.'''
 

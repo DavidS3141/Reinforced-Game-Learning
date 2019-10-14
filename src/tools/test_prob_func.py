@@ -1,4 +1,4 @@
-#!/user/bin/env python
+#!/usr/bin/env python
 
 '''test_prob_func.py: Test and compare different functions for computing the probability distribution over different actions.'''
 

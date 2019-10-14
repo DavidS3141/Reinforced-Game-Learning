@@ -1,4 +1,4 @@
-#!/user/bin/env python
+#!/usr/bin/env python
 '''
 algorithm/mcts_player.py: Implement a player class using the AlphaGo Zero
     approach.

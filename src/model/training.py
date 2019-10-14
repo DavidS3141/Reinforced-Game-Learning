@@ -1,4 +1,4 @@
-#!/user/bin/env python
+#!/usr/bin/env python
 
 '''training.py: Implements the training routine for the network.'''
 

@@ -1,4 +1,4 @@
-#!/user/bin/env python
+#!/usr/bin/env python
 '''
 algorithm/mcts_network.py: Implement a network class used by Monte-Carlo tree
     search.

@@ -1,4 +1,4 @@
-#!/user/bin/env python
+#!/usr/bin/env python
 '''
 tf_layers_nets.py: Serves functions returning layers and complete networks.
 '''
