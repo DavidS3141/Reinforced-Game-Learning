@@ -2,11 +2,15 @@
 
 import numpy as np
 from games.game import Game, GameEngine
-from players.basic_players import Random, Human
+from players.basic_players import (  # noqa: F401
+    Random,
+    Human,
+    MCTS_RandomPolicy,
+    SuperRandom,
+)
 
 
 class TicTacToe(Game):
-
     CIRCLE = 0
     CROSS = 1
     lines = [
@@ -54,6 +58,22 @@ class TicTacToe(Game):
         lines.append(" %s | %s | %s " % tuple([chr(s) for s in ords[2]]))
         return "\n".join(lines)
 
+    # def minimal_visualize(self, state):
+    #     ords = ord(" ") * state["board"][2, :, :]
+    #     ords += ord("O") * state["board"][0, :, :]
+    #     ords += ord("X") * state["board"][1, :, :]
+    #     ords = np.array(ords, dtype=int)
+    #     ords[
+    #         np.logical_and(
+    #             np.logical_and(ords != ord(" "), ords != ord("X")), ords != ord("O")
+    #         )
+    #     ] = ord("#")
+    #     lines = []
+    #     lines.append("%s%s%s" % tuple([chr(s) for s in ords[0]]))
+    #     lines.append("%s%s%s" % tuple([chr(s) for s in ords[1]]))
+    #     lines.append("%s%s%s" % tuple([chr(s) for s in ords[2]]))
+    #     return "\n".join(lines)
+
     def get_player_turn(self, state):
         return state["turn"]
 
@@ -86,11 +106,11 @@ class TicTacToe(Game):
         if status == -3:  # invalid move, set status to winner id
             status = state["turn"]
         if status == 0:
-            return [1.0, -1.0]
+            return [1.0, 0.0]
         if status == 1:
-            return [-1.0, 1.0]
+            return [0.0, 1.0]
         if status == -2:
-            return [0.0, 0.0]
+            return [0.5, 0.5]
         raise Exception("LogicError")
 
     def get_status(self, state):
@@ -151,6 +171,11 @@ class TicTacToe(Game):
 
 if __name__ == "__main__":
     game = TicTacToe()
-    players = [Random(game), Human(game)]
-    engine = GameEngine(game, players)
-    engine.run()
+    players = [Random(game), MCTS_RandomPolicy(game)]
+    n = 100
+    sum_points = np.array([0.0, 0.0])
+    for _ in range(n):
+        engine = GameEngine(game, players)
+        result = engine.run()
+        sum_points += np.array(result)
+    print(sum_points / sum_points.sum())
