@@ -17,11 +17,11 @@ if [ -f "$SRC_DIR/.venv/bin/activate" ]
 then
     :
 else
-    if (( $(python3 --version | cut -d. -f2) >= 6 )) # prompt option available since >=3.6
+    if (( $(python3.7 --version | cut -d. -f2) >= 6 )) # prompt option available since >=3.6
     then
-        python3 -m venv "$SRC_DIR/.venv" --prompt="$PROJECT_SHORT"
+        python3.7 -m venv "$SRC_DIR/.venv" --prompt="$PROJECT_SHORT"
     else
-        python3 -m venv "$SRC_DIR/.venv"
+        python3.7 -m venv "$SRC_DIR/.venv"
     fi
 fi
 
