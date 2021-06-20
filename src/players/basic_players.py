@@ -90,4 +90,8 @@ class MCTS_NetworkPolicy(MCTS_Player):
     def policy_value_function(self, flatten_state):
         output = self.model.predict(flatten_state[None, ...], batch_size=1)
         policy, value = output[:2]
+        # print(policy)
+        # # policy = np.exp(-np.log(policy))
+        # policy = np.ones_like(policy)
+        # policy /= policy.sum()
         return policy[0], value[0]

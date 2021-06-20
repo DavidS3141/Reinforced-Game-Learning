@@ -331,12 +331,25 @@ class UltimateTicTacToe(Game):
         return xs * 27 + ys * 9 + x * 3 + y
 
     def user_input_2_action(self):
-        print("Please provide your next turn through xs,ys,x,y input coordinates!")
-        xs, ys, x, y = map(lambda x: int(x) - 1, input().split())
+        print(
+            "Please provide your next turn through numkeypad (bottom left 1) "
+            "input coordinates, eg 11 would be lower left most corner!"
+        )
+        s, local = map(
+            lambda x: int(x) - 1 if 4 <= int(x) <= 6 else (int(x) - 1 + 6) % 12, input()
+        )
+        xs, ys, x, y = self.action_id_2_xy(9 * s + local)
         return self.xy_2_action_id(xs, ys, x, y)
 
     def action_2_user_output(self, action_id):
-        return str(tuple([v + 1 for v in self.action_id_2_xy(action_id)]))
+        return str(
+            tuple(
+                map(
+                    lambda x: x + 1 if 4 <= x + 1 <= 6 else (x + 1 + 6) % 12,
+                    [action_id // 9, action_id % 9],
+                )
+            )
+        )
 
 
 def get_model():
@@ -386,13 +399,28 @@ def get_model():
 
 if __name__ == "__main__":
     from glob import glob
+    import matplotlib.pyplot as plt
 
-    stage_nbr = 1
+    stage_nbr = 0
     mode = "train_model"
     # mode = "test_model"
     # mode = "selfplay_model"
     # mode = "test_model_by_human"
     game = UltimateTicTacToe()
+
+    sqrt10 = np.sqrt(10.0)
+    c_puct_samples = [
+        1e-3 * sqrt10,
+        1e-2,
+        1e-2 * sqrt10,
+        1e-1,
+        1e-1 * sqrt10,
+        1e0,
+        1e0 * sqrt10,
+        1e1,
+        1e1 * sqrt10,
+        1e2,
+    ]
 
     if mode == "train_model":
         from tools.write_parse_tfrecords import (
@@ -401,19 +429,39 @@ if __name__ == "__main__":
         )
         from utils import get_time_stamp
         import functools
-        import matplotlib.pyplot as plt
 
         network = get_model()
         network.summary(line_length=120)
         for stage in range(stage_nbr + 1):
             train_data_dir = osp.join(
-                os.getenv("OUTPUT_DATADIR"), "trainsamples_selfplay", "stage_%d" % stage
+                os.getenv("OUTPUT_DATADIR"),
+                game.__class__.__name__,
+                "trainsamples_selfplay",
+                "stage_%d" % stage,
             )
             fnames, feature_format = get_filenames_and_feature_format(train_data_dir)
-            tf_dataset = tfrecord_parser(fnames, feature_format).batch(32)
-            iterator = tf_dataset.make_one_shot_iterator()
-            inputs = iterator.get_next()
-            flatten_state = layers.Input(tensor=inputs["flatten_state"])
+            game_timestamps = sorted({"_".join(f.split("_")[:-1]) for f in fnames})
+            np.random.shuffle(game_timestamps)
+            valid_games_ts = game_timestamps[: len(game_timestamps) // 10]
+            train_games_ts = game_timestamps[len(game_timestamps) // 10 :]
+            valid_fnames = [
+                f for f in fnames if "_".join(f.split("_")[:-1]) in valid_games_ts
+            ]
+            train_fnames = [
+                f for f in fnames if "_".join(f.split("_")[:-1]) in train_games_ts
+            ]
+            np.random.shuffle(valid_fnames)
+            np.random.shuffle(train_fnames)
+            tf_train_dataset = tfrecord_parser(train_fnames, feature_format).batch(32)
+            tf_valid_dataset = tfrecord_parser(valid_fnames, feature_format).batch(32)
+            train_iterator = tf_train_dataset.make_one_shot_iterator()
+            valid_iterator = tf_valid_dataset.make_one_shot_iterator()
+            inputs = train_iterator.get_next()
+            valid_inputs = valid_iterator.get_next()
+
+            flatten_state = layers.Input(
+                shape=inputs["flatten_state"].shape.as_list()[1:]
+            )
             outputs = network(flatten_state)
             model = tf.keras.Model(inputs=flatten_state, outputs=outputs)
             logits_xentropy = functools.wraps(tf.keras.losses.categorical_crossentropy)(
@@ -430,94 +478,140 @@ if __name__ == "__main__":
                     logits_xentropy,
                 ],
                 metrics=[["accuracy", "mean_squared_error"], ["accuracy"], [], []],
-                target_tensors=[
+            )
+            history = model.fit(
+                x=inputs["flatten_state"],
+                y=[
                     inputs["policy_label"],
                     inputs["values_label"],
                     inputs["policy_label"],
                     inputs["values_label"],
                 ],
-            )
-            history = model.fit(
-                steps_per_epoch=len(fnames) // 32, epochs=100, verbose=2
+                validation_data=(
+                    valid_inputs["flatten_state"],
+                    [
+                        valid_inputs["policy_label"],
+                        valid_inputs["values_label"],
+                        valid_inputs["policy_label"],
+                        valid_inputs["values_label"],
+                    ],
+                ),
+                steps_per_epoch=len(train_fnames) // 32,
+                validation_steps=len(valid_fnames) // 32,
+                epochs=20,
+                verbose=2,
             )
             timestamp = get_time_stamp()
             model_filename = osp.join(
                 os.getenv("INPUT_DATADIR"),
                 "models",
-                "ultimate_tictactoe",
+                game.__class__.__name__,
                 "stage_%d" % stage_nbr,
                 timestamp + "_trainstage_%d.h5" % stage,
             )
             os.makedirs(osp.dirname(model_filename), exist_ok=True)
             network.save(model_filename)
             plt.plot(history.history["model_acc"], label="policy_acc")
+            plt.plot(history.history["val_model_acc"], label="val_policy_acc")
             plt.plot(
                 -np.log(np.array(history.history["model_mean_squared_error"])),
                 label="policy_-ln_mse",
             )
+            plt.plot(
+                -np.log(np.array(history.history["val_model_mean_squared_error"])),
+                label="val_policy_-ln_mse",
+            )
             plt.plot(history.history["model_1_acc"], label="values_acc")
+            plt.plot(history.history["val_model_1_acc"], label="val_values_acc")
             plt.legend()
             plt.savefig(model_filename[:-2] + "png")
             plt.close("all")
     elif mode == "selfplay_model":
-
         if stage_nbr == 0:
-            network = get_model()
+            player = MCTS_RandomPolicy(
+                game,
+                train_data_output_dir=osp.join(
+                    os.getenv("OUTPUT_DATADIR"),
+                    game.__class__.__name__,
+                    "trainsamples_selfplay",
+                    "stage_%d" % stage_nbr,
+                ),
+                temperature=1.0,
+                c_puct=2.0,
+                nbr_sims=2 ** 8,
+            )
         else:
             model_files = sorted(
                 glob(
                     osp.join(
                         os.getenv("INPUT_DATADIR"),
                         "models",
-                        "ultimate_tictactoe",
+                        game.__class__.__name__,
                         "stage_%d" % (stage_nbr - 1),
                         "*_trainstage_%d.h5" % (stage_nbr - 1),
                     )
                 )
             )
             network = tf.keras.models.load_model(model_files[-1])
-        network.summary(line_length=120)
-
-        players = [
-            MCTS_NetworkPolicy(
+            network.summary(line_length=120)
+            player = MCTS_NetworkPolicy(
                 network,
                 game,
                 train_data_output_dir=osp.join(
                     os.getenv("OUTPUT_DATADIR"),
+                    game.__class__.__name__,
                     "trainsamples_selfplay",
                     "stage_%d" % stage_nbr,
                 ),
                 temperature=1.0,
-                c_puct=5.0,
-                nbr_sims=2 ** 10,
-            ),
-            # MCTS_RandomPolicy(
-            #     game,
-            #     train_data_output_dir=osp.join(
-            #         os.getenv("OUTPUT_DATADIR"), "trainsamples_selfplay"
-            #     ),
-            #     c_puct=20.0,
-            #     # nbr_sims=2 ** 14,
-            #     nbr_sims=2 ** 3,
-            # ),
-            # RandomHuman(game),
-            # MCTS_NetworkPolicy(network, game),
-        ]
-        players = players + players
-        n = 1000
+                c_puct=2.0,
+                nbr_sims=2 ** 4,
+            )
+
+        players = [player, player]
+        n = 10000
+        n_per_cpuct_cell = n // len(c_puct_samples) ** 2
+        assert n % len(c_puct_samples) ** 2 == 0
         sum_points = np.array([0.0, 0.0])
-        for _ in tqdm(range(n)):
+        sum_points_per_cpuct_cell = np.zeros(
+            (len(c_puct_samples) + 1, len(c_puct_samples) + 1, 2)
+        )
+        for k in tqdm(range(n)):
+            i = k % len(c_puct_samples)
+            j = (k // len(c_puct_samples)) % len(c_puct_samples)
+            c_puct_A = c_puct_samples[i]
+            c_puct_B = c_puct_samples[j]
+            players[0].mcts.c_puct = c_puct_A
+            players[1].mcts.c_puct = c_puct_B
             engine = GameEngine(game, players)
             result = engine.run()
             sum_points += np.array(result)
+            sum_points_per_cpuct_cell[i + 1, j + 1, :] = np.array(result)
         print(sum_points / sum_points.sum())
+        delta_points_first_player_per_cpuct_cell = (
+            sum_points_per_cpuct_cell[:, :, 0] - sum_points_per_cpuct_cell[:, :, 1]
+        ) / n_per_cpuct_cell
+        delta_points_first_player_per_cpuct_cell[0] += 1.0
+        delta_points_first_player_per_cpuct_cell[:, 0] -= 1.0
+        plt.imshow(delta_points_first_player_per_cpuct_cell, cmap=plt.cm.RdBu)
+        plt.colorbar()
+        plt.savefig(
+            osp.join(
+                os.getenv("OUTPUT_DATADIR"),
+                game.__class__.__name__,
+                "trainsamples_selfplay",
+                "stage_%d" % stage_nbr,
+                "win_rates_over_cpuct.png",
+            )
+        )
+        plt.close("all")
     elif mode == "test_model":
         model_files = sorted(
             glob(
                 osp.join(
                     os.getenv("INPUT_DATADIR"),
                     "models",
-                    "ultimate_tictactoe",
+                    game.__class__.__name__,
                     "stage_%d" % stage_nbr,
                     "*_trainstage_%d.h5" % stage_nbr,
                 )
@@ -533,7 +627,7 @@ if __name__ == "__main__":
                     osp.join(
                         os.getenv("INPUT_DATADIR"),
                         "models",
-                        "ultimate_tictactoe",
+                        game.__class__.__name__,
                         "stage_%d" % (stage_nbr - 1),
                         "*_trainstage_%d.h5" % (stage_nbr - 1),
                     )
@@ -546,27 +640,31 @@ if __name__ == "__main__":
                 older_network_generation,
                 game,
                 temperature=0.0,
-                c_puct=1.0,
-                nbr_sims=2 ** 5,
+                c_puct=2.0,
+                nbr_sims=2 ** 7,
             ),
             MCTS_NetworkPolicy(
-                network, game, temperature=0.0, c_puct=1.0, nbr_sims=2 ** 5
+                network, game, temperature=0.0, c_puct=2.0, nbr_sims=2 ** 7
             ),
         ]
         n = 100
         sum_points = np.array([0.0, 0.0])
-        for _ in tqdm(range(n)):
-            engine = GameEngine(game, players)
+        p = len(players)
+        for i in tqdm(range(n)):
+            engine = GameEngine(game, players[i % p :] + players[: i % p])
             result = engine.run()
+            print(result)
+            result = result[p - i % p :] + result[: p - i % p]
+            print(result)
             sum_points += np.array(result)
-        print(sum_points / sum_points.sum())
+            print("Current win estimates:", sum_points / sum_points.sum())
     elif mode == "test_model_by_human":
         model_files = sorted(
             glob(
                 osp.join(
                     os.getenv("INPUT_DATADIR"),
                     "models",
-                    "ultimate_tictactoe",
+                    game.__class__.__name__,
                     "stage_%d" % stage_nbr,
                     "*_trainstage_%d.h5" % stage_nbr,
                 )
@@ -577,8 +675,10 @@ if __name__ == "__main__":
 
         players = [
             MCTS_NetworkPolicy(
-                network, game, temperature=0.0, c_puct=1.0, nbr_sims=2 ** 11
+                network, game, temperature=0.0, c_puct=20.0, nbr_sims=2 ** 11
             ),
+            # MCTS_RandomPolicy(game, temperature=0.0, c_puct=2.0, nbr_sims=2 ** 15),
+            # MCTS_RandomPolicy(game, temperature=0.0, c_puct=20.0, nbr_sims=2 ** 10),
             Human(game),
         ]
         n = 3
